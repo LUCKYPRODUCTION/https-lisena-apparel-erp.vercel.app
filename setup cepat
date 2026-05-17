@@ -1,0 +1,4 @@
+git clone <repo>
+cd lisena-apparel-erp
+docker-compose up -d
+# Akses: http://localhost:3000
