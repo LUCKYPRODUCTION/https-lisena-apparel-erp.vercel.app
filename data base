@@ -1,0 +1,212 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  phone         String?
+  name          String
+  role          UserRole
+  avatar        String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  orders        Order[]
+  approvals     Approval[]
+  activities    Activity[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MARKETING
+  PURCHASING
+  PRODUCTION
+  QC
+  WAREHOUSE
+  FINANCE
+  OPERATOR
+  CUSTOMER
+}
+
+model Customer {
+  id           String   @id @default(cuid())
+  code         String   @unique @default("CUST-" ++ id())
+  name         String
+  phone        String
+  email        String?
+  address      String?
+  type         CustomerType // SEKOLAH, INSTANSI, KOMUNITAS, EVENT
+  priority     PriorityLevel @default(NORMAL)
+  notes        String?
+  whatsapp     String?
+  createdAt    DateTime @default(now())
+  
+  orders       Order[]
+  interactions Interaction[]
+
+  @@map("customers")
+}
+
+enum CustomerType {
+  SEKOLAH
+  INSTANSI
+  KOMUNITAS
+  EVENT
+  RETAIL
+}
+
+enum PriorityLevel {
+  LOW
+  NORMAL
+  HIGH
+  VIP
+}
+
+model Order {
+  id              String     @id @default(cuid())
+  invoiceNo       String     @unique
+  customerId      String
+  customer        Customer   @relation(fields: [customerId], references: [id])
+  title           String
+  description     String?
+  designFile      String[]   // Cloudinary URLs
+  referenceFile   String[]?
+  quantity        Int
+  productType     ProductType
+  sizes           Json       // {S: 10, M: 20, L: 30}
+  colors          Json[]
+  fabricType      String
+  printType       PrintType[]
+  embroidery      Boolean    @default(false)
+  deadline        DateTime
+  dpAmount        Float      @default(0)
+  totalAmount     Float
+  sellingPrice    Float
+  hpp             Float      @default(0)
+  profit          Float      @default(0)
+  profitPercent   Float      @default(0)
+  status          OrderStatus @default(PENDING)
+  
+  // Timestamps
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  // Relations
+  customer        Customer   @relation(fields: [customerId], references: [id])
+  production      Production?
+  payments        Payment[]
+  workOrders      WorkOrder[]
+  hppBreakdown    HppBreakdown?
+  
+  @@map("orders")
+}
+
+enum ProductType {
+  KAOS
+  HOODIE
+  JERSEY
+  PDH
+  PDL
+  WEARPACK
+  CUSTOM
+}
+
+enum OrderStatus {
+  PENDING
+  APPROVED
+  PRODUCTION
+  QC
+  PACKING
+  SHIPPING
+  COMPLETED
+  CANCELLED
+}
+
+model Production {
+  id          String      @id @default(cuid())
+  orderId     String      @unique
+  order       Order       @relation(fields: [orderId], references: [id])
+  status      ProdStatus  @default(PLANNING)
+  progress    Float       @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  targetDate  DateTime
+  
+  stages      ProductionStage[]
+  
+  @@map("productions")
+}
+
+model HppBreakdown {
+  id           String   @id @default(cuid())
+  orderId      String   @unique
+  order        Order    @relation(fields: [orderId], references: [id])
+  
+  // Bahan Baku
+  fabricCost     Float @default(0)
+  threadCost     Float @default(0)
+  ribCost        Float @default(0)
+  zipperCost     Float @default(0)
+  buttonCost     Float @default(0)
+  labelCost      Float @default(0)
+  hangtagCost    Float @default(0)
+  polybagCost    Float @default(0)
+  inkCost        Float @default(0)
+  
+  // Produksi
+  cuttingCost    Float @default(0)
+  sewingCost     Float @default(0)
+  printingCost   Float @default(0)
+  embroideryCost Float @default(0)
+  
+  // Overhead
+  overheadCost   Float @default(0)
+  
+  // Total
+  totalHpp       Float @default(0)
+  wastePercent   Float @default(5)
+  
+  @@map("hpp_breakdowns")
+}
+
+model Inventory {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  category    String   // KAIN, BENANG, TINTA, etc
+  unit        String   // METER, KG, PCS
+  stock       Float
+  minStock    Float
+  supplierId  String?
+  price       Float
+  location    String?  // Gudang A, B, etc
+  
+  transactions InventoryTransaction[]
+  
+  @@map("inventory")
+}
+
+model WorkOrder {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id])
+  woNumber   String   @unique
+  stage      String   // CUTTING, SEWING, etc
+  quantity   Int
+  status     WoStatus @default(PENDING)
+  qrCode     String   @unique
+  
+  @@map("work_orders")
+}
