@@ -1,0 +1,12 @@
+lisena-apparel-erp/
+├── apps/
+│   ├── web/          # Next.js Web App
+│   ├── admin/        # Admin Dashboard
+│   ├── mobile/       # React Native Mobile
+│   └── api/          # Backend API
+├── packages/
+│   ├── ui/           # Shared UI Components
+│   ├── db/           # Database Schema
+│   └── types/        # TypeScript Types
+├── docker-compose.yml
+└── README.md
